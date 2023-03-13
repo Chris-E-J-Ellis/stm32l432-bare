@@ -28,25 +28,37 @@ pub fn build(b: *std.Build) void {
     elf.addObject(vector_obj);
     elf.setLinkerScriptPath(.{ .path = "src/linker.ld" });
 
-    const bin = b.addInstallRaw(elf, "stm32l432-raw.bin", .{});
+    const obj_cpy_step = elf.addObjCopy(.{
+        .basename = "stm32l432-raw.bin",
+        .format = .bin,
+    });
+
+    const install_bin_step = b.addInstallBinFile(obj_cpy_step.getOutputSource(), obj_cpy_step.basename);
+
     const bin_step = b.step("bin", "Generate binary file to be flashed");
-    bin_step.dependOn(&bin.step);
+    bin_step.dependOn(&obj_cpy_step.step);
+    bin_step.dependOn(&install_bin_step.step);
+
+    // Likely a better way to get this path, but this'll do me (testing)
+    var path_to_bin_buffer = [_]u8{0} ** 128;
+    const path_to_bin = std.fmt.bufPrint(&path_to_bin_buffer, "{s}\\{s}", .{ b.install_path, obj_cpy_step.basename }) catch unreachable;
+    _ = path_to_bin;
 
     const stm32_programmer_cli_path = "C:\\Applications\\STM\\STM32CubeProgrammer\\bin\\"; // Local path, fight me!
     const flash_cmd = b.addSystemCommand(&[_][]const u8{
         stm32_programmer_cli_path ++ "STM32_Programmer_CLI.exe",
         "-c port=SWD",
         "-w",
-        b.getInstallPath(bin.dest_dir, bin.dest_filename),
+        "./zig-out/bin/stm32l432-raw.bin",
         "0x08000000",
         // "-V", // Verify
         "-Rst", // Reset MCU
     });
-    flash_cmd.step.dependOn(&bin.step);
+    flash_cmd.step.dependOn(bin_step);
 
     const flash_step = b.step("flash", "flash binary into MCU");
     flash_step.dependOn(&flash_cmd.step);
 
-    b.default_step.dependOn(&elf.step);
+    b.default_step.dependOn(bin_step);
     b.installArtifact(elf);
 }

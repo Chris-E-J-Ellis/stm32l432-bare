@@ -68,7 +68,7 @@ fn configureSysTick(tick_frequency_hz: u24) void {
     // Enable Systick clock
     registers.SCS.SysTick.CTRL.modify(.{ .ENABLE = 1 }); // Enable systick
     registers.SCS.SysTick.CTRL.modify(.{ .CLKSOURCE = 0 }); // Default Use Processor clock / 8 (AHB/8)
-    //chip.registers.SCS.SysTick.CTRL.modify(.{ .CLKSOURCE = 1 }); // Use Processor clock (AHB)
+    //registers.SCS.SysTick.CTRL.modify(.{ .CLKSOURCE = 1 }); // Use Processor clock (AHB)
     registers.SCS.SysTick.CTRL.modify(.{ .TICKINT = 1 }); // Enable interrupt on tick count reaching zero
     registers.SCS.SysTick.LOAD.modify(.{ .RELOAD = tick_frequency_hz }); // Set systick reload value
 
