@@ -3,22 +3,29 @@ const registers = @import("registers.zig").registers;
 // Used as default system freq if no clock configuration performed post reset
 const default_MSI_freq_hz = 4_000_000;
 const max_HSI_PLL_freq_hz = 80_000_000;
+const ms_per_s = 1000; // Could use std.time?
+var sys_ticks: u32 = 0;
 
 export fn sysTickHandler() void {
-    toggleUserLed();
+    sys_ticks += 1;
 }
 
 pub fn main() void {
     // Test some things!
     //configureClock();
-    //configureSysTick(max_HSI_PLL_freq_hz / 8); // Using AHB/8 as clock source
-    configureSysTick(default_MSI_freq_hz / 8); // Using AHB/8 as clock source
+    //configureSysTick(max_HSI_PLL_freq_hz / 8 / 1000); // Using AHB/8 as clock source
+    //configureSysTick(default_MSI_freq_hz / 8 / 1000); // Using AHB/8 as clock source
+    configureSysTick(default_MSI_freq_hz / 1000); // Using processor as clock source
     enableUserLed();
 
-    const delayNops = default_MSI_freq_hz / 100;
+    //const delayNops = default_MSI_freq_hz / 100;
     while (true) {
-        delay(delayNops);
+        //delay(delayNops);
         //toggleUserLed();
+
+        // Test ticking
+        if (@mod(sys_ticks, ms_per_s) == 0)
+            toggleUserLed();
     }
 }
 
@@ -67,8 +74,8 @@ fn configureSysTick(tick_frequency_hz: u24) void {
 
     // Enable Systick clock
     registers.SCS.SysTick.CTRL.modify(.{ .ENABLE = 1 }); // Enable systick
-    registers.SCS.SysTick.CTRL.modify(.{ .CLKSOURCE = 0 }); // Default Use Processor clock / 8 (AHB/8)
-    //registers.SCS.SysTick.CTRL.modify(.{ .CLKSOURCE = 1 }); // Use Processor clock (AHB)
+    //registers.SCS.SysTick.CTRL.modify(.{ .CLKSOURCE = 0 }); // Default Use Processor clock / 8 (AHB/8)
+    registers.SCS.SysTick.CTRL.modify(.{ .CLKSOURCE = 1 }); // Use Processor clock (AHB)
     registers.SCS.SysTick.CTRL.modify(.{ .TICKINT = 1 }); // Enable interrupt on tick count reaching zero
     registers.SCS.SysTick.LOAD.modify(.{ .RELOAD = tick_frequency_hz }); // Set systick reload value
 
